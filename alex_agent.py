@@ -131,7 +131,7 @@ def run_server():
 def seteaza_webhook():
     import time
     time.sleep(3) # Așteaptă pornirea serverului
-     webhook_url = f"https://api.telegram.org/bot{TOKEN}/setWebhook?url={RENDER_URL}"
+     = f"https://api.telegram.org/bot{TOKEN}/setWebhook?url={RENDER_URL}"
     try:
         urllib.request.urlopen(webhook_url)
         print("Webhook setat cu succes pe Telegram!")
