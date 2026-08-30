@@ -11,10 +11,9 @@ import urllib.request
 import urllib.parse
 
 SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"]
-TOKEN = "TOKENUL_TAU_DE_TELEGRAM"  # Pune aici tokenul tău real de la BotFather
-RENDER_URL = "https://alex-bot-tcsc.onrender.com"  # Link-ul tău de pe Render
+TOKEN = "TOKENUL_TAU_DE_TELEGRAM"
+RENDER_URL = "https://alex-bot-tcsc.onrender.com"
 
-# --- 1. LOGICA DE GMAIL ---
 def decodeaza(data):
     if not data:
         return b""
@@ -92,14 +91,13 @@ def trimite_mesaj_telegram(chat_id, text):
     try:
         urllib.request.urlopen(url, data=data)
     except Exception as e:
-        print("Erore la trimiterea mesajului pe Telegram:", e)
+        print("Erore la trimiterea mesajului:", e)
 
-# --- 2. SERVERUL HTTP CARE ASCULTĂ TELEGRAMUL ---
 class TelegramWebhookHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         self.send_response(200)
         self.end_headers()
-        self.wfile.write(b"Bot is alive and running via Webhook!")
+        self.wfile.write(b"Bot is alive!")
 
     def do_POST(self):
         content_length = int(self.headers['Content-Length'])
@@ -118,28 +116,25 @@ class TelegramWebhookHandler(BaseHTTPRequestHandler):
                 else:
                     trimite_mesaj_telegram(chat_id, f"Am primit mesajul tău: {update['message'].get('text')}")
         except Exception as e:
-            print("Erore în procesarea mesajului:", e)
+            print("Erore:", e)
 
         self.send_response(200)
         self.end_headers()
 
 def run_server():
     server = HTTPServer(('0.0.0.0', 10000), TelegramWebhookHandler)
-    print("Serverul pornește pe portul 10000...")
     server.serve_forever()
 
 def seteaza_webhook():
     import time
-    time.sleep(3) # Așteaptă pornirea serverului
-     = f"https://api.telegram.org/bot{TOKEN}/setWebhook?url={RENDER_URL}"
+    time.sleep(3)
+    url_set = "https://api.telegram.org/bot" + TOKEN + "/setWebhook?url=" + RENDER_URL
     try:
-        urllib.request.urlopen(webhook_url)
-        print("Webhook setat cu succes pe Telegram!")
+        urllib.request.urlopen(url_set)
+        print("Webhook setat!")
     except Exception as e:
-        print("Erore la setarea webhook-ului:", e)
+        print("Erore webhook:", e)
 
 if __name__ == "__main__":
-    # Setează webhook-ul automat într-un fir separat
     threading.Thread(target=seteaza_webhook, daemon=True).start()
-    # Pornește serverul web principal
     run_server()
