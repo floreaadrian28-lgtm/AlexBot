@@ -51,7 +51,7 @@ def verifica_emailuri_gmail():
 
         serviciu = build("gmail", "v1", credentials=creds)
 
-        cautare = 'from:ciprianursulescu@yahoo.com subject:"SORIN 17.08.2026"'
+        cautare = 'from:ciprianursulescu@yahoo.com'
         rezultate = serviciu.users().messages().list(userId="me", q=cautare, maxResults=1).execute()
         mesaje = rezultate.get("messages", [])
 
