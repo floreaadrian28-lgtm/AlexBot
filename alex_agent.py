@@ -22,9 +22,10 @@ def run_server():
     server = HTTPServer(('0.0.0.0', 10000), SimpleHandler)
     server.serve_forever()
 
+# Pornește serverul web în fundal
 threading.Thread(target=run_server, daemon=True).start()
 
-# --- 2. LOGICA DE GMAIL CU TOKEN SALVAT ---
+# --- 2. LOGICA DE GMAIL ---
 def decodeaza(data):
     if not data:
         return b""
@@ -118,7 +119,7 @@ def main():
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_message))
 
-    print("Botul a pornit complet...")
+    print("Botul de Telegram a pornit...")
     app.run_polling()
 
 if __name__ == "__main__":
