@@ -111,7 +111,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"Am primit mesajul tău: {update.message.text}")
 
 def main():
-    TOKEN = "TOKENUL_TAU_DE_TELEGRAM"  # Pune tokenul tău aici
+    TOKEN = "8093206443:AAFboufSo82UmUDMCB2e2gNSQWb2A8Jzef8"  # Pune tokenul tău aici
     
     app = ApplicationBuilder().token(TOKEN).build()
 
