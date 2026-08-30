@@ -1,7 +1,9 @@
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import threading
 import base64
-import os
+import os.path
+from google.auth.transport.requests import Request
+from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from telegram import Update
@@ -20,10 +22,9 @@ def run_server():
     server = HTTPServer(('0.0.0.0', 10000), SimpleHandler)
     server.serve_forever()
 
-# Pornește serverul web în fundal pe portul 10000
 threading.Thread(target=run_server, daemon=True).start()
 
-# --- 2. LOGICA DE CITIRE EMAILURI ---
+# --- 2. LOGICA DE GMAIL CU TOKEN SALVAT ---
 def decodeaza(data):
     if not data:
         return b""
@@ -46,8 +47,19 @@ def gaseste_atasamente(payload, lista):
 
 def verifica_emailuri_gmail():
     try:
-        flow = InstalledAppFlow.from_client_secrets_file("credentials.json", SCOPES)
-        creds = flow.run_local_server(port=0)
+        creds = None
+        if os.path.exists("token.json"):
+            creds = Credentials.from_authorized_user_file("token.json", SCOPES)
+        
+        if not creds or not creds.valid:
+            if creds and creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+            else:
+                flow = InstalledAppFlow.from_client_secrets_file("credentials.json", SCOPES)
+                creds = flow.run_local_server(port=0)
+            with open("token.json", "w") as token:
+                token.write(creds.to_json())
+
         serviciu = build("gmail", "v1", credentials=creds)
 
         cautare = 'from:ciprianursulescu@yahoo.com subject:"SORIN 17.08.2026"'
@@ -84,7 +96,7 @@ def verifica_emailuri_gmail():
     except Exception as e:
         return f"Erore la conectarea cu Gmail: {str(e)}"
 
-# --- 3. COMENZILE DE TELEGRAM ---
+# --- 3. TELEGRAM ---
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Salut, Adrian! Sunt Alex. Sunt conectat și pregătit să te ajut.")
 
@@ -93,14 +105,13 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     if "verifică" in text or "verifica" in text:
         await update.message.reply_text("Verific e-mailurile acum...")
-        # Rulează verificarea de Gmail
         rezultat_gmail = verifica_emailuri_gmail()
         await update.message.reply_text(rezultat_gmail)
     else:
         await update.message.reply_text(f"Am primit mesajul tău: {update.message.text}")
 
 def main():
-    TOKEN = "TOKENUL_TAU_DE_TELEGRAM"  # Asigură-te că ai tokenul tău corect aici sau prin variabile de mediu
+    TOKEN = "TOKENUL_TAU_DE_TELEGRAM"  # Pune tokenul tău aici
     
     app = ApplicationBuilder().token(TOKEN).build()
 
