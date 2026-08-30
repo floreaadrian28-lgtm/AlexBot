@@ -1,31 +1,20 @@
+import os
+import json
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import threading
 import base64
-import os.path
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
-from telegram import Update
-from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, MessageHandler, filters
+import urllib.request
+import urllib.parse
 
 SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"]
+TOKEN = "TOKENUL_TAU_DE_TELEGRAM"  # Pune aici tokenul tău real de la BotFather
+RENDER_URL = "https://alex-bot-tcsc.onrender.com"  # Link-ul tău de pe Render
 
-# --- 1. CONFIGURARE SERVER WEB PENTRU RENDER ---
-class SimpleHandler(BaseHTTPRequestHandler):
-    def do_GET(self):
-        self.send_response(200)
-        self.end_headers()
-        self.wfile.write(b"Bot is alive!")
-
-def run_server():
-    server = HTTPServer(('0.0.0.0', 10000), SimpleHandler)
-    server.serve_forever()
-
-# Pornește serverul web în fundal
-threading.Thread(target=run_server, daemon=True).start()
-
-# --- 2. LOGICA DE GMAIL ---
+# --- 1. LOGICA DE GMAIL ---
 def decodeaza(data):
     if not data:
         return b""
@@ -97,30 +86,60 @@ def verifica_emailuri_gmail():
     except Exception as e:
         return f"Erore la conectarea cu Gmail: {str(e)}"
 
-# --- 3. TELEGRAM ---
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Salut, Adrian! Sunt Alex. Sunt conectat și pregătit să te ajut.")
+def trimite_mesaj_telegram(chat_id, text):
+    url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
+    data = urllib.parse.urlencode({"chat_id": chat_id, "text": text}).encode("utf-8")
+    try:
+        urllib.request.urlopen(url, data=data)
+    except Exception as e:
+        print("Erore la trimiterea mesajului pe Telegram:", e)
 
-async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    text = update.message.text.lower()
-    
-    if "verifică" in text or "verifica" in text:
-        await update.message.reply_text("Verific e-mailurile acum...")
-        rezultat_gmail = verifica_emailuri_gmail()
-        await update.message.reply_text(rezultat_gmail)
-    else:
-        await update.message.reply_text(f"Am primit mesajul tău: {update.message.text}")
+# --- 2. SERVERUL HTTP CARE ASCULTĂ TELEGRAMUL ---
+class TelegramWebhookHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b"Bot is alive and running via Webhook!")
 
-def main():
-    TOKEN = "8093206443:AAFboufSo82UmUDMCB2e2gNSQWb2A8Jzef8"  # Pune tokenul tău aici
-    
-    app = ApplicationBuilder().token(TOKEN).build()
+    def do_POST(self):
+        content_length = int(self.headers['Content-Length'])
+        post_data = self.rfile.read(content_length)
+        
+        try:
+            update = json.loads(post_data.decode('utf-8'))
+            if "message" in update:
+                chat_id = update["message"]["chat"]["id"]
+                text = update["message"].get("text", "").lower()
 
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_message))
+                if "verifică" in text or "verifica" in text:
+                    trimite_mesaj_telegram(chat_id, "Verific e-mailurile acum...")
+                    rezultat = verifica_emailuri_gmail()
+                    trimite_mesaj_telegram(chat_id, rezultat)
+                else:
+                    trimite_mesaj_telegram(chat_id, f"Am primit mesajul tău: {update['message'].get('text')}")
+        except Exception as e:
+            print("Erore în procesarea mesajului:", e)
 
-    print("Botul de Telegram a pornit...")
-    app.run_polling()
+        self.send_response(200)
+        self.end_headers()
+
+def run_server():
+    server = HTTPServer(('0.0.0.0', 10000), TelegramWebhookHandler)
+    print("Serverul pornește pe portul 10000...")
+    server.serve_forever()
+
+def seteaza_webhook():
+    import time
+    time.sleep(3) # Așteaptă pornirea serverului
+     webhook_url = f"https://api.telegram.org/bot{TOKEN}/setWebhook?url={RENDER_URL}"
+    try:
+        urllib.request.urlopen(webhook_url)
+        print("Webhook setat cu succes pe Telegram!")
+    except Exception as e:
+        print("Erore la setarea webhook-ului:", e)
 
 if __name__ == "__main__":
-    main()
+    # Setează webhook-ul automat într-un fir separat
+    threading.Thread(target=seteaza_webhook, daemon=True).start()
+    # Pornește serverul web principal
+    run_server()
