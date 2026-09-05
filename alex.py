@@ -3,7 +3,7 @@ import logging
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
 
-TOKEN = os.getenv("TELEGRAM_TOKEN", "8093206443:AAH8XAq0eJnsZFSAz8jaKo6mvVbH6HMpGUI")
+TOKEN = os.getenv("TELEGRAM_TOKEN", "8093206443:AAHZoJ-QBvrYxSp-Dm8ZCQuGELEgHzXClXs")
 MY_CHAT_ID = 8421765354
 
 logging.basicConfig(
